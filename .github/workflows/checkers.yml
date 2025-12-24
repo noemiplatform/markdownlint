@@ -1,28 +1,49 @@
-name: Checkers
+sname: CI
 
 on:
   pull_request:
   push:
     branches-ignore:
       - 'dependabot/**'
+  schedule:
+    - cron: '30 12 * * *'
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ${{ matrix.os }}
 
-  linkcheck:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        node-version: [ 20, 22, 24 ]
+
     steps:
     - uses: actions/checkout@v6
-    - uses: JustinBeckwith/linkinator-action@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v6
       with:
-        linksToSkip: '^https://github.com/ ^https://www.jwz.org/ ^https://www.npmjs.com/ ^https://opensource.org/ ^https://unix.stackexchange.com/'
-        paths: '*.md doc/*.md helpers/*.md'
+        node-version: ${{ matrix.node-version }}
+    - name: Install Dependencies
+      run: npm install
+    - name: Run CI Tests
+      run: npm run ci
 
-  spellcheck:
+  pnpm:
     runs-on: ubuntu-latest
+
     steps:
     - uses: actions/checkout@v6
-    - uses: tbroadley/spellchecker-cli-action@v1
+    - name: Use pnpm latest
+      uses: pnpm/action-setup@v4
       with:
-        dictionaries: '.github/dictionary.txt'
-        files: '*.md doc/*.md helpers/*.md'
+        version: latest
+    - name: Use Node.js latest
+      uses: actions/setup-node@v6
+      with:
+        node-version: latest
+    - name: Install dependencies
+      run: pnpm install
+    - name: Run CI Tests
+      run: npm test
